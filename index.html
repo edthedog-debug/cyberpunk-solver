@@ -292,7 +292,7 @@
         async function procesarImagenOCR(base64Image) {
             ocrStatus.innerText = "Ejecutando calibración y análisis de matriz...";
             try {
-                const worker = await Tesseract.createWorker('eng');
+                await Tesseract.recognize(...);
                 const { data } = await worker.recognize(base64Image);
                 await worker.terminate();
 
