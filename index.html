@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netrunner Breach Protocol Solver Pro</title>
+    <!-- Tesseract.js CDN para OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --cyber-yellow: #fcee0a;
+            --cyber-blue: #00f0ff;
+            --cyber-dark: #030712;
+            --cyber-bg: #0b0f19;
+            --cyber-pink: #ff0055;
+            --cyber-gray: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--cyber-bg);
+            color: #ffffff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            border: 4px solid var(--cyber-yellow);
+            position: relative;
+        }
+
+        body::before {
+            content: ":: BREACH_PRO_CAMERA_v5.5 ::";
+            position: absolute;
+            top: 5px;
+            left: 10px;
+            color: var(--cyber-yellow);
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        h1 {
+            color: var(--cyber-yellow);
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(252, 238, 10, 0.5);
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.8rem;
+            letter-spacing: 3px;
+            border-bottom: 2px solid var(--cyber-blue);
+            padding-bottom: 10px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: rgba(3, 7, 18, 0.85);
+            border: 1px solid var(--cyber-blue);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            color: var(--cyber-blue);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .camera-box {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border: 2px dashed var(--cyber-pink);
+            aspect-ratio: 4/3;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scan-overlay {
+            position: absolute;
+            top: 5%;
+            left: 2%;
+            width: 96%;
+            height: 90%;
+            border: 2px solid var(--cyber-yellow);
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+        }
+
+        .scan-overlay::before {
+            content: "CENTRAR ENCUADRE COMPLETO DE LA MATRIZ";
+            position: absolute;
+            top: -25px;
+            left: 0;
+            background: var(--cyber-yellow);
+            color: #000;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+        }
+
+        .btn {
+            background: var(--cyber-yellow);
+            color: #000;
+            border: none;
+            padding: 12px 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            width: 100%;
+            box-shadow: 3px 3px 0px var(--cyber-blue);
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: var(--cyber-blue);
+            color: #000;
+            box-shadow: 3px 3px 0px var(--cyber-pink);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--cyber-blue);
+            border: 1px solid var(--cyber-blue);
+            box-shadow: none;
+        }
+
+        .grid-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--cyber-blue);
+            margin-bottom: 5px;
+        }
+
+        textarea, input {
+            width: 100%;
+            background: var(--cyber-gray);
+            border: 1px solid var(--cyber-blue);
+            color: #fff;
+            padding: 10px;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            resize: vertical;
+            height: 160px;
+        }
+
+        .solution-output {
+            background: rgba(255, 0, 85, 0.1);
+            border-left: 4px solid var(--cyber-pink);
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .solution-step {
+            display: inline-block;
+            background: var(--cyber-blue);
+            color: #000;
+            padding: 5px 10px;
+            margin: 5px;
+            font-weight: bold;
+            border-radius: 2px;
+        }
+
+        .matrix-preview-table {
+            border-collapse: collapse;
+            margin-top: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        .matrix-preview-table td {
+            border: 1px solid #334155;
+            padding: 8px;
+            font-size: 1.1rem;
+        }
+        .matrix-preview-table td.highlighted {
+            background: var(--cyber-yellow);
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 0 8px var(--cyber-yellow);
+        }
+
+        #status-log {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Icebreaker Protocol Pro</h1>
+
+    <!-- SECCIÓN 1: CÁMARA MEJORADA -->
+    <div class="container">
+        <div class="section-title">
+            <span>[01] Escáner Óptico Adaptativo</span>
+            <span style="color: var(--cyber-pink);" id="ocr-engine-status">Filtro de Contraste Activo</span>
+        </div>
+        
+        <div class="camera-box">
+            <video id="webcam" autoplay playsinline></video>
+            <div class="scan-overlay"></div>
+        </div>
+
+        <button class="btn" id="btn-snap">Escanear Matriz y Daemons</button>
+        <button class="btn btn-secondary" id="btn-toggle-cam">Cambiar Cámara</button>
+        <div id="status-log">Asegúrate de capturar toda la caja de la matriz, especialmente la zona inferior.</div>
+    </div>
+
+    <!-- SECCIÓN 2: DATOS DETECTADOS -->
+    <div class="container">
+        <div class="section-title">[02] Verificación de Código Filtrado</div>
+        <div class="grid-inputs">
+            <div>
+                <label for="buffer-size">Capacidad del Búfer (Buffer):</label>
+                <input type="number" id="buffer-size" value="8" min="4" max="12">
+            </div>
+            <div>
+                <label for="matrix-input">Matriz de Código:</label>
+                <textarea id="matrix-input"></textarea>
+            </div>
+            <div>
+                <label for="daemons-input">Secuencias Requeridas (Daemons):</label>
+                <textarea id="daemons-input"></textarea>
+            </div>
+            <button class="btn" style="background-color: var(--cyber-blue); box-shadow: 3px 3px 0px var(--cyber-yellow);" id="btn-solve">Resolver Matriz</button>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 3: SOLUCIÓN -->
+    <div class="container">
+        <div class="section-title">[03] Solución de Invasión Óptima</div>
+        <div id="matrix-visual-container"></div>
+        <div class="solution-output" id="solution-box">
+            <h3 style="color: var(--cyber-pink); margin-bottom: 10px; font-size: 1.1rem;">RUTA DE ENTRADA EXTRAPOLADA:</h3>
+            <div id="steps-container"></div>
+            <p id="daemons-completed" style="margin-top: 10px; font-size: 0.9rem; color: var(--cyber-blue);"></p>
+        </div>
+    </div>
+
+    <!-- Canvas oculto para procesamiento digital de imagen -->
+    <canvas id="capture-canvas" style="display:none;"></canvas>
+
+    <script>
+        // Carga automática inicial para pruebas manuales si la cámara fallase
+        document.getElementById('matrix-input').value = `E9 E9 1C 1C 7A 1C E9
+7A 7A 1C 55 7A FF E9
+1C 55 1C E9 1C BD 1C
+E9 1C 1C 1C FF BD 7A
+E9 1C 1C 55 FF 7A E9
+55 7A E9 BD BD 7A BD
+1C E9 E9 7A 1C 55 55`;
+
+        document.getElementById('daemons-input').value = `BD BD
+1C 55 E9
+7A 7A 1C`;
+
+        const video = document.getElementById('webcam');
+        const btnSnap = document.getElementById('btn-snap');
+        const btnToggleCam = document.getElementById('btn-toggle-cam');
+        const btnSolve = document.getElementById('btn-solve');
+        const statusLog = document.getElementById('status-log');
+        const ocrStatus = document.getElementById('ocr-engine-status');
+        
+        let currentStream = null;
+        let useFacingMode = "environment";
+
+        async function startCamera() {
+            if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+            try {
+                const constraints = {
+                    video: { facingMode: useFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                statusLog.innerText = "Cámara lista. Apunta directamente a la pantalla.";
+            } catch (err) {
+                statusLog.innerText = "Error al iniciar cámara: " + err.message;
+            }
+        }
+
+        btnToggleCam.addEventListener('click', () => {
+            useFacingMode = useFacingMode === "environment" ? "user" : "environment";
+            startCamera();
+        });
+
+        btnSnap.addEventListener('click', async () => {
+            if (!video.srcObject) return;
+            
+            ocrStatus.innerText = "PROCESANDO IMAGEN...";
+            statusLog.innerText = "Filtrando distorsión lumínica e interpretando filas...";
+
+            const canvas = document.getElementById('capture-canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // PROCESAMIENTO ADAPTATIVO: Limpieza agresiva de luz azul
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Le damos más peso al canal rojo y verde para contrarrestar el azul nativo de las pantallas
+                let brightness = 0.45 * data[i] + 0.45 * data[i + 1] + 0.1 * data[i + 2];
+                // Umbralización dinámica más suave para captar letras en zonas de sombra/bordes inferiores
+                let v = (brightness > 115) ? 255 : 0; 
+                data[i] = v;     
+                data[i + 1] = v; 
+                data[i + 2] = v; 
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            try {
+                const worker = await Tesseract.createWorker('es');
+                const result = await worker.recognize(canvas);
+                const text = result.data.text;
+                await worker.terminate();
+
+                ocrStatus.innerText = "Filtro Activo";
+                parseOCRText(text);
+            } catch (error) {
+                ocrStatus.innerText = "Error OCR";
+                statusLog.innerText = "Error: " + error.message;
+            }
+        });
+
+        function parseOCRText(text) {
+            const validTokens = ["55", "1C", "7A", "BD", "E9", "FF"];
+            
+            // Reemplazo estricto mejorado para erradicar fallos en los límites inferiores (como el 56 o 8D)
+            let cleanedText = text.toUpperCase()
+                .replace(/8D/g, "BD")  
+                .replace(/56/g, "55")  
+                .replace(/B0/g, "BD")
+                .replace(/EB/g, "E9")  
+                .replace(/S5/g, "55")
+                .replace(/SS/g, "55")
+                .replace(/5S/g, "55")
+                .replace(/10/g, "1C")
+                .replace(/74/g, "7A");
+
+            const lines = cleanedText.split('\n');
+            let matrixLines = [];
+            let foundDaemons = [];
+
+            lines.forEach(line => {
+                const tokens = line.match(/[0-9A-Z]{2}/g);
+                if (tokens) {
+                    const cleanTokens = tokens.filter(t => validTokens.includes(t));
+                    
+                    // Se amplía la tolerancia: acepta filas que contengan entre 4 y 8 tokens válidos continuos
+                    if (cleanTokens.length >= 4 && cleanTokens.length <= 8) { 
+                        matrixLines.push(cleanTokens.join(" "));
+                    } 
+                    // Si encuentra entre 2 y 3 elementos aislados, se interpretan como Daemons
+                    else if (cleanTokens.length >= 2 && cleanTokens.length < 4) {
+                        foundDaemons.push(cleanTokens.join(" "));
+                    }
+                }
+            });
+
+            if (matrixLines.length > 0) {
+                document.getElementById('matrix-input').value = matrixLines.join('\n');
+            }
+            if (foundDaemons.length > 0) {
+                let uniqueDaemons = [...new Set(foundDaemons)];
+                document.getElementById('daemons-input').value = uniqueDaemons.join('\n');
+            }
+            
+            statusLog.innerText = "Lectura completada con éxito. Ejecutando resolución...";
+            solveBreach();
+        }
+
+        btnSolve.addEventListener('click', solveBreach);
+
+        function solveBreach() {
+            const matrixRaw = document.getElementById('matrix-input').value.trim().toUpperCase();
+            const daemonsRaw = document.getElementById('daemons-input').value.trim().toUpperCase();
+            const bufferSize = parseInt(document.getElementById('buffer-size').value) || 8;
+
+            if (!matrixRaw || !daemonsRaw) return;
+
+            const matrix = matrixRaw.split('\n').map(line => line.trim().split(/\s+/));
+            const daemons = daemonsRaw.split('\n').map(line => line.trim().split(/\s+/));
+
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+
+            let bestSequence = [];
+            let bestScore = -1;
+            let bestPath = [];
+
+            function findPaths(r, c, isRow, currentPath, currentSeq) {
+                if (currentSeq.length > bufferSize) return;
+
+                let score = 0;
+                daemons.forEach((daemon, idx) => {
+                    if (isSubarray(currentSeq, daemon)) {
+                        score += (idx + 1) * 20 + daemon.length; 
+                    }
+                });
+
+                if (score > bestScore || (score === bestScore && currentSeq.length < bestSequence.length)) {
+                    bestScore = score;
+                    bestSequence = [...currentSeq];
+                    bestPath = [...currentPath];
+                }
+
+                if (currentSeq.length === bufferSize) return;
+
+                if (isRow) {
+                    for (let nextC = 0; nextC < cols; nextC++) {
+                        if (!currentPath.some(p => p.r === r && p.c === nextC)) {
+                            currentPath.push({r: r, c: nextC});
+                            currentSeq.push(matrix[r][nextC]);
+                            findPaths(r, nextC, false, currentPath, currentSeq);
+                            currentSeq.pop();
+                            currentPath.pop();
+                        }
+                    }
+                } else {
+                    for (let nextR = 0; nextR < rows; nextR++) {
+                        if (!currentPath.some(p => p.r === nextR && p.c === c)) {
+                            currentPath.push({r: nextR, c: c});
+                            currentSeq.push(matrix[nextR][c]);
+                            findPaths(nextR, c, true, currentPath, currentSeq);
+                            currentSeq.pop();
+                            currentPath.pop();
+                        }
+                    }
+                }
+            }
+
+            for (let c = 0; c < cols; c++) {
+                findPaths(0, c, false, [{r: 0, c: c}], [matrix[0][c]]);
+            }
+
+            renderSolution(matrix, bestPath, bestSequence, daemons);
+        }
+
+        function isSubarray(master, sub) {
+            if (sub.length === 0) return false;
+            for (let i = 0; i <= master.length - sub.length; i++) {
+                let match = true;
+                for (let j = 0; j < sub.length; j++) {
+                    if (master[i + j] !== sub[j]) { match = false; break; }
+                }
+                if (match) return true;
+            }
+            return false;
+        }
+
+        function renderSolution(matrix, path, sequence, daemons) {
+            const visualContainer = document.getElementById('matrix-visual-container');
+            visualContainer.innerHTML = "";
+
+            const table = document.createElement('table');
+            table.className = "matrix-preview-table";
+
+            matrix.forEach((row, r) => {
+                const tr = document.createElement('tr');
+                row.forEach((cell, c) => {
+                    const td = document.createElement('td');
+                    td.innerText = cell;
+                    const stepIndex = path.findIndex(p => p.r === r && p.c === c);
+                    if (stepIndex !== -1) {
+                        td.className = "highlighted";
+                        td.innerHTML = `${cell}<br><span style="font-size:10px;color:#ff0055;font-weight:bold;">[${stepIndex + 1}]</span>`;
+                    }
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+            visualContainer.appendChild(table);
+
+            const stepsContainer = document.getElementById('steps-container');
+            stepsContainer.innerHTML = "";
+            path.forEach((node) => {
+                const span = document.createElement('span');
+                span.className = "solution-step";
+                span.innerText = `${matrix[node.r][node.c]} (F${node.r + 1}, C${node.c + 1})`;
+                stepsContainer.appendChild(span);
+            });
+
+            let completedDaemons = [];
+            daemons.forEach(d => {
+                if (isSubarray(sequence, d)) completedDaemons.push(d.join(" "));
+            });
+
+            document.getElementById('daemons-completed').innerText = "Daemons Hackeados: " + 
+                (completedDaemons.length > 0 ? completedDaemons.join(" | ") : "Ninguno (Sube la capacidad del buffer)");
+
+            document.getElementById('solution-box').style.display = "block";
+        }
+
+        window.addEventListener('DOMContentLoaded', startCamera);
+    </script>
+</body>
+</html>
