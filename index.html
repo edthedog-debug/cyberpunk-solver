@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netrunner Protocol Solver Ultra</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --cyber-yellow: #fcee0a;
+            --cyber-blue: #00f0ff;
+            --cyber-dark: #030712;
+            --cyber-bg: #0b0f19;
+            --cyber-pink: #ff0055;
+            --cyber-gray: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--cyber-bg);
+            color: #ffffff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            border: 4px solid var(--cyber-yellow);
+            position: relative;
+        }
+
+        body::before {
+            content: ":: BREACH_PRO_ULTRA_v9.0_PERFECT ::";
+            position: absolute;
+            top: 5px;
+            left: 10px;
+            color: var(--cyber-yellow);
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        h1 {
+            color: var(--cyber-yellow);
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(252, 238, 10, 0.5);
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.8rem;
+            letter-spacing: 3px;
+            border-bottom: 2px solid var(--cyber-blue);
+            padding-bottom: 10px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: rgba(3, 7, 18, 0.85);
+            border: 1px solid var(--cyber-blue);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            color: var(--cyber-blue);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .mode-option {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border: 1px solid var(--cyber-blue);
+            background: rgba(0, 240, 255, 0.05);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .mode-option.active {
+            background: var(--cyber-blue);
+            color: #000;
+            box-shadow: 0 0 10px var(--cyber-blue);
+        }
+
+        .mode-option-pink {
+            border-color: var(--cyber-pink);
+            background: rgba(255, 0, 85, 0.05);
+            color: #fff;
+        }
+
+        .mode-option-pink.active {
+            background: var(--cyber-pink);
+            color: #fff;
+            box-shadow: 0 0 10px var(--cyber-pink);
+        }
+
+        .camera-box {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border: 2px dashed var(--cyber-pink);
+            aspect-ratio: 4/3;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform-origin: center center;
+        }
+
+        .zoom-controls {
+            background: rgba(3, 7, 18, 0.9);
+            border: 1px solid var(--cyber-gray);
+            padding: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .zoom-controls label {
+            margin-bottom: 0;
+            white-space: nowrap;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .zoom-controls input[type="range"] {
+            flex-grow: 1;
+            cursor: pointer;
+            accent-color: var(--cyber-yellow);
+        }
+
+        .scan-overlay {
+            position: absolute;
+            top: 4%;
+            left: 3%;
+            width: 94%;
+            height: 92%;
+            border: 2px solid var(--cyber-yellow);
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .btn {
+            background: var(--cyber-yellow);
+            color: #000;
+            border: none;
+            padding: 14px 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            width: 100%;
+            box-shadow: 3px 3px 0px var(--cyber-blue);
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: var(--cyber-blue);
+            color: #000;
+            box-shadow: 3px 3px 0px var(--cyber-pink);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--cyber-blue);
+            border: 1px solid var(--cyber-blue);
+            box-shadow: none;
+        }
+
+        .grid-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--cyber-blue);
+            margin-bottom: 5px;
+        }
+
+        textarea, input {
+            width: 100%;
+            background: var(--cyber-gray);
+            border: 1px solid var(--cyber-blue);
+            color: #fff;
+            padding: 10px;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            resize: vertical;
+            height: 150px;
+        }
+
+        .solution-output {
+            background: rgba(255, 0, 85, 0.1);
+            border-left: 4px solid var(--cyber-pink);
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .solution-step {
+            display: inline-block;
+            background: var(--cyber-blue);
+            color: #000;
+            padding: 5px 10px;
+            margin: 5px;
+            font-weight: bold;
+        }
+
+        .matrix-preview-table {
+            border-collapse: collapse;
+            margin-top: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        .matrix-preview-table td {
+            border: 1px solid #334155;
+            padding: 8px;
+            font-size: 1.1rem;
+        }
+        .matrix-preview-table td.highlighted {
+            background: var(--cyber-yellow);
+            color: #000;
+            font-weight: bold;
+        }
+
+        #status-log {
+            font-size: 0.85rem;
+            color: #fcee0a;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Breach Protocol Solver Pro</h1>
+
+    <div class="container">
+        <div class="section-title">
+            <span>[01] Escáner Óptico de Pantalla</span>
+            <span style="color: var(--cyber-pink);" id="ocr-engine-status">ESTABILIZADOR CONFIGURADO</span>
+        </div>
+        
+        <div class="mode-selector">
+            <div class="mode-option active" id="mode-matrix" onclick="setScanMode('matrix')">1. Enfocar Matriz Grande</div>
+            <div class="mode-option mode-option-pink" id="mode-daemons" onclick="setScanMode('daemons')">2. Enfocar Daemons (Pequeña)</div>
+        </div>
+
+        <div class="camera-box">
+            <video id="webcam" autoplay playsinline></video>
+            <div class="scan-overlay"></div>
+        </div>
+
+        <div class="zoom-controls">
+            <label for="zoom-slider">ZOOM: <span id="zoom-value">1.0x</span></label>
+            <input type="range" id="zoom-slider" min="1" max="4" step="0.1" value="1">
+        </div>
+
+        <button class="btn" id="btn-snap">Escanear Objetivo Seleccionado</button>
+        <button class="btn btn-secondary" id="btn-toggle-cam">Alternar Entrada de Cámara</button>
+        <div id="status-log">Listo para escaneo de precisión absoluta.</div>
+    </div>
+
+    <div class="container">
+        <div class="section-title">[02] Datos Crudos Extraídos</div>
+        <div class="grid-inputs">
+            <div>
+                <label for="buffer-size">Capacidad del Búfer (Buffer del juego):</label>
+                <input type="number" id="buffer-size" value="8" min="4" max="12">
+            </div>
+            <div>
+                <label for="matrix-input" style="color: var(--cyber-blue); font-weight: bold;">Estructura de la Matriz:</label>
+                <textarea id="matrix-input" placeholder="Los datos de la matriz se estructurarán aquí automáticamente."></textarea>
+            </div>
+            <div>
+                <label for="daemons-input" style="color: var(--cyber-pink); font-weight: bold;">Secuencias Requeridas (Daemons):</label>
+                <textarea id="daemons-input" placeholder="Los códigos daemon se registrarán aquí."></textarea>
+            </div>
+            <button class="btn" style="background-color: var(--cyber-blue); box-shadow: 3px 3px 0px var(--cyber-yellow);" id="btn-solve">Forzar Resolución Matemática</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section-title">[03] Secuencia de Inyección Ejecutable</div>
+        <div id="matrix-visual-container"></div>
+        <div class="solution-output" id="solution-box">
+            <h3 style="color: var(--cyber-pink); margin-bottom: 10px; font-size: 1.1rem;">RUTA DE ENTRADA CALCULADA:</h3>
+            <div id="steps-container"></div>
+            <p id="daemons-completed" style="margin-top: 10px; font-size: 0.9rem; color: var(--cyber-blue);"></p>
+        </div>
+    </div>
+
+    <canvas id="capture-canvas" style="display:none;"></canvas>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const btnSnap = document.getElementById('btn-snap');
+        const btnToggleCam = document.getElementById('btn-toggle-cam');
+        const btnSolve = document.getElementById('btn-solve');
+        const statusLog = document.getElementById('status-log');
+        const ocrStatus = document.getElementById('ocr-engine-status');
+        const zoomSlider = document.getElementById('zoom-slider');
+        const zoomValue = document.getElementById('zoom-value');
+        
+        let currentStream = null;
+        let useFacingMode = "environment";
+        let videoTrack = null;
+        let currentScanMode = 'matrix';
+
+        function setScanMode(mode) {
+            currentScanMode = mode;
+            document.getElementById('mode-matrix').classList.remove('active');
+            document.getElementById('mode-daemons').classList.remove('active');
+            
+            if(mode === 'matrix') {
+                document.getElementById('mode-matrix').classList.add('active');
+                statusLog.innerText = "Modo: Buscando Matriz Grande de Códigos.";
+            } else {
+                document.getElementById('mode-daemons').classList.add('active');
+                statusLog.innerText = "Modo: Buscando Lista Lateral de Daemons.";
+            }
+        }
+
+        async function startCamera() {
+            if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+            try {
+                const constraints = {
+                    video: { facingMode: useFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                videoTrack = currentStream.getVideoTracks()[0];
+            } catch (err) {
+                statusLog.innerText = "Fallo de hardware de vídeo: " + err.message;
+            }
+        }
+
+        zoomSlider.addEventListener('input', async (e) => {
+            const val = e.target.value;
+            zoomValue.innerText = parseFloat(val).toFixed(1) + "x";
+            if (videoTrack) {
+                try {
+                    await videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] });
+                    return;
+                } catch (err) { /* Fallback a CSS si el navegador bloquea el control nativo */ }
+            }
+            video.style.transform = `scale(${val})`;
+        });
+
+        btnToggleCam.addEventListener('click', () => {
+            useFacingMode = useFacingMode === "environment" ? "user" : "environment";
+            startCamera();
+        });
+
+        btnSnap.addEventListener('click', async () => {
+            if (!video.srcObject) return;
+            
+            ocrStatus.innerText = "FILTRANDO ESPECTRO...";
+            statusLog.innerText = "Filtrando aberraciones cromáticas de la pantalla...";
+
+            const canvas = document.getElementById('capture-canvas');
+            const scale = parseFloat(zoomSlider.value);
+            
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (video.style.transform !== "scale(1)") {
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.scale(scale, scale);
+                ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            }
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (video.style.transform !== "scale(1)") { ctx.restore(); }
+
+            // ALGORITMO DE EXTRACCIÓN POR SEPARACIÓN DE CANAL ROJO (Aísla Amarillo eliminando Azul-Monitor)
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+
+                // El color amarillo de la interfaz del juego tiene un valor altísimo de rojo y verde, y bajísimo de azul.
+                // Restando el azul del canal rojo, eliminamos el brillo azul de fondo de las pantallas LED/OLED.
+                let contrastValue = r - b; 
+
+                // Umbral dinámico estricto para limpiar ruido ambiental
+                let binarized = (contrastValue > 45 && g > 40) ? 0 : 255; // Texto negro sobre fondo blanco puro para Tesseract
+                
+                data[i] = binarized;
+                data[i+1] = binarized;
+                data[i+2] = binarized;
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            try {
+                // Quitamos la whitelist restrictiva para evitar fallos de emparejamiento tipográfico
+                const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+                ocrStatus.innerText = "EXTRACCIÓN COMPLETADA";
+                processCleanText(text);
+            } catch (error) {
+                ocrStatus.innerText = "ERROR EN MATRIZ";
+                statusLog.innerText = "Reintente el escaneo: " + error.message;
+            }
+        });
+
+        function processCleanText(text) {
+            // Diccionario de correcciones heurísticas para tipografías del juego distorsionadas
+            let rawLines = text.toUpperCase()
+                .replace(/]/g, "1C").replace(/\[/g, "1C")
+                .replace(/74/g, "7A").replace(/10/g, "1C")
+                .replace(/56/g, "55").replace(/8D/g, "BD")
+                .replace(/E9/g, "E9").replace(/B0/g, "BD")
+                .split('\n');
+
+            const validHex = ["1C", "55", "7A", "BD", "E9", "FF"];
+            let cleanMatrixLines = [];
+
+            rawLines.forEach(line => {
+                // Captura cualquier secuencia consecutiva de caracteres para recomponer parejas de hexadecimales
+                let tokens = line.match(/[0-9A-Z]{2}/g);
+                if (tokens) {
+                    let verifiedTokens = tokens.filter(tok => validHex.includes(tok));
+                    if (verifiedTokens.length >= 2) {
+                        cleanMatrixLines.push(verifiedTokens.join(" "));
+                    }
+                }
+            });
+
+            if (currentScanMode === 'matrix') {
+                // Las matrices de Cyberpunk van desde un tamaño mínimo de 5x5 hasta un máximo de 7x7
+                let finalMatrix = cleanMatrixLines.filter(l => {
+                    let len = l.split(" ").length;
+                    return len >= 5 && len <= 7;
+                });
+
+                if (finalMatrix.length >= 5) {
+                    document.getElementById('matrix-input').value = finalMatrix.join('\n');
+                    statusLog.innerText = "Matriz procesada perfectamente. Cambia arriba a '2. Enfocar Daemons'.";
+                } else {
+                    // Fallback de seguridad si el encuadre recortó una fila
+                    document.getElementById('matrix-input').value = cleanMatrixLines.join('\n');
+                    statusLog.innerText = "Matriz volcada. Verifique visualmente que las filas tengan el mismo tamaño.";
+                }
+            } else {
+                // Daemons laterales (secuencias objetivo de entre 2 y 4 elementos de longitud)
+                let finalDaemons = cleanMatrixLines.filter(l => {
+                    let len = l.split(" ").length;
+                    return len >= 2 && len <= 4;
+                });
+
+                if (finalDaemons.length > 0) {
+                    let deduplicated = [...new Set(finalDaemons)];
+                    document.getElementById('daemons-input').value = deduplicated.join('\n');
+                    statusLog.innerText = "Daemons listos y cargados.";
+                } else {
+                    document.getElementById('daemons-input').value = cleanMatrixLines.slice(0,3).join('\n');
+                    statusLog.innerText = "Datos volcados al panel secundario.";
+                }
+            }
+
+            // Si ambos campos están listos, ejecuta de inmediato la resolución algorítmica
+            if (document.getElementById('matrix-input').value && document.getElementById('daemons-input').value) {
+                solveBreach();
+            }
+        }
+
+        btnSolve.addEventListener('click', solveBreach);
+
+        function solveBreach() {
+            const matrixRaw = document.getElementById('matrix-input').value.trim().toUpperCase();
+            const daemonsRaw = document.getElementById('daemons-input').value.trim().toUpperCase();
+            const bufferSize = parseInt(document.getElementById('buffer-size').value) || 8;
+
+            if (!matrixRaw || !daemonsRaw) {
+                statusLog.innerText = "Error: Faltan datos en la matriz o los daemons para resolver.";
+                return;
+            }
+
+            const matrix = matrixRaw.split('\n').map(line => line.trim().split(/\s+/));
+            const daemons = daemonsRaw.split('\n').map(line => line.trim().split(/\s+/));
+
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+
+            let bestSequence = [];
+            let bestScore = -1;
+            let bestPath = [];
+
+            function dfs(r, c, isRow, currentPath, currentSeq) {
+                if (currentSeq.length > bufferSize) return;
+
+                let score = 0;
+                daemons.forEach((daemon, idx) => {
+                    if (isSubarray(currentSeq, daemon)) {
+                        score += (idx + 1) * 50 + (daemon.length * 10); 
+                    }
+                });
+
+                if (score > bestScore || (score === bestScore && currentSeq.length < bestSequence.length)) {
+                    bestScore = score;
+                    bestSequence = [...currentSeq];
+                    bestPath = [...currentPath];
+                }
+
+                if (currentSeq.length === bufferSize) return;
+
+                if (isRow) {
+                    for (let nextC = 0; nextC < cols; nextC++) {
+                        if (!currentPath.some(p => p.r === r && p.c === nextC)) {
+                            currentPath.push({r: r, c: nextC});
+                            currentSeq.push(matrix[r][nextC]);
+                            dfs(r, nextC, false, currentPath, currentSeq);
+                            currentSeq.pop();
+                            currentPath.pop();
+                        }
+                    }
+                } else {
+                    for (let nextR = 0; nextR < rows; nextR++) {
+                        if (!currentPath.some(p => p.r === nextR && p.c === c)) {
+                            currentPath.push({r: nextR, c: c});
+                            currentSeq.push(matrix[nextR][c]);
+                            dfs(nextR, c, true, currentPath, currentSeq);
+                            currentSeq.pop();
+                            currentPath.pop();
+                        }
+                    }
+                }
+            }
+
+            // Iniciar de forma obligatoria en la fila superior (regla del juego)
+            for (let c = 0; c < cols; c++) {
+                dfs(0, c, false, [{r: 0, c: c}], [matrix[0][c]]);
+            }
+
+            renderSolution(matrix, bestPath, bestSequence, daemons);
+        }
+
+        function isSubarray(master, sub) {
+            if (sub.length === 0) return false;
+            for (let i = 0; i <= master.length - sub.length; i++) {
+                let match = true;
+                for (let j = 0; j < sub.length; j++) {
+                    if (master[i + j] !== sub[j]) { match = false; break; }
+                }
+                if (match) return true;
+            }
+            return false;
+        }
+
+        function renderSolution(matrix, path, sequence, daemons) {
+            const visualContainer = document.getElementById('matrix-visual-container');
+            visualContainer.innerHTML = "";
+
+            const table = document.createElement('table');
+            table.className = "matrix-preview-table";
+
+            matrix.forEach((row, r) => {
+                const tr = document.createElement('tr');
+                row.forEach((cell, c) => {
+                    const td = document.createElement('td');
+                    td.innerText = cell;
+                    const stepIndex = path.findIndex(p => p.r === r && p.c === c);
+                    if (stepIndex !== -1) {
+                        td.className = "highlighted";
+                        td.innerHTML = `${cell}<br><span style="font-size:11px;color:#ff0055;font-weight:bold;">[PASO ${stepIndex + 1}]</span>`;
+                    }
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+            visualContainer.appendChild(table);
+
+            const stepsContainer = document.getElementById('steps-container');
+            stepsContainer.innerHTML = "";
+            path.forEach((node) => {
+                const span = document.createElement('span');
+                span.className = "solution-step";
+                span.innerText = `${matrix[node.r][node.c]}`;
+                stepsContainer.appendChild(span);
+            });
+
+            let completedDaemons = [];
+            daemons.forEach(d => {
+                if (isSubarray(sequence, d)) completedDaemons.push(d.join(" "));
+            });
+
+            document.getElementById('daemons-completed').innerText = "DAEMONS COMPLETADOS CON ESTA RUTA: " + 
+                (completedDaemons.length > 0 ? completedDaemons.join(" | ") : "Ninguno óptimo.");
+
+            document.getElementById('solution-box').style.display = "block";
+            statusLog.innerText = "¡Solución calculada con éxito!";
+        }
+
+        window.addEventListener('DOMContentLoaded', startCamera);
+    </script>
+</body>
+</html>
